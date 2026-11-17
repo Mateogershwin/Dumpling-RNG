@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Battle Kitchen: Dumpling RNG</title>
+<style>
+  :root {
+    --bg: #faf8f2;
+    --card: #ffffff;
+    --card-soft: #f4f1e8;
+    --border: #e5e0d3;
+    --green: #23533a;
+    --green-hover: #1a3f2c;
+    --text: #1c2420;
+    --muted: #6c7570;
+    --gold: #d99b26;
+  }
+  * { box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--text); }
+
+  /* Top Navbar matching screenshot */
+  header {
+    background: #fffdf8;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: grid; place-items: center; font-size: 18px;
+  }
+  .brand-title small { display: block; font-size: 10px; letter-spacing: 1.5px; color: var(--gold); font-weight: 700; }
+  .brand-title strong { font-size: 17px; color: var(--text); }
+
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nav-btn {
+    border: none; background: transparent; color: var(--muted);
+    padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13px;
+    cursor: pointer; transition: 0.15s;
+  }
+  .nav-btn:hover { background: var(--card-soft); color: var(--text); }
+  .nav-btn.active { background: var(--green); color: #fff; }
+
+  .hud-stats { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+  .pill {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 999px; display: flex; align-items: center; gap: 6px;
+  }
+  .xp-bar { width: 64px; height: 6px; background: #e3dfd3; border-radius: 99px; overflow: hidden; }
+  .xp-fill { height: 100%; background: var(--green); width: 36%; }
+
+  /* Layout */
+  main { max-width: 1120px; margin: 24px auto; padding: 0 20px 60px; }
+  .section-kicker { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; color: var(--gold); text-transform: uppercase; }
+  h1 { margin: 4px 0 20px; font-size: 28px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Rarity Glows */
+  .r-Common { border-color: #cbd5e1; }
+  .r-Uncommon { border-color: #4ade80; box-shadow: 0 0 14px rgba(74,222,128,0.2); }
+  .r-Rare { border-color: #60a5fa; box-shadow: 0 0 16px rgba(96,165,250,0.25); }
+  .r-Epic { border-color: #c084fc; box-shadow: 0 0 18px rgba(192,132,252,0.3); }
+  .r-Legendary { border-color: #facc15; box-shadow: 0 0 22px rgba(250,204,21,0.38); }
+  .r-Owner {
+    border: 2px solid #ec4899;
+    box-shadow: 0 0 25px rgba(236,72,153,0.45);
+    background: linear-gradient(135deg, #fff 0%, #fdf4ff 100%);
+  }
+
+  /* Steamer Roll Screen */
+  .steamer-stage { text-align: center; padding: 32px 16px; }
+  .steamer-basket {
+    width: 170px; height: 170px; margin: 0 auto 18px;
+    border-radius: 50%; background: var(--card-soft); border: 3px dashed #d5cbb8;
+    display: grid; place-items: center; position: relative; transition: transform 0.2s;
+  }
+  .steamer-basket.shaking { animation: shake 0.35s infinite; }
+  @keyframes shake {
+    0%,100% { transform: rotate(0deg) scale(1.03); }
+    25% { transform: rotate(-6deg) scale(1.05); }
+    75% { transform: rotate(6deg) scale(1.05); }
+  }
+  .btn-primary {
+    background: var(--green); color: #fff; border: none;
+    padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: 0.15s;
+  }
+  .btn-primary:hover { background: var(--green-hover); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--card-soft); color: var(--text); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+
+  /* Bento Box Grid matching screenshot */
+  .bento-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+  .slot-card {
+    background: var(--card-soft); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .stat-pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .stat-tag {
+    background: #fff; border: 1px solid var(--border); padding: 4px 10px;
+    border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--green);
+  }
+  .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .inv-item {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 14px; text-align: center; display: flex; flex-direction: column; gap: 6px;
+  }
+
+  /* Battle Arena */
+  .arena-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  canvas {
+    background: #eadbc0; border: 4px solid #8c6239; border-radius: 16px;
+    max-width: 100%; cursor: crosshair; box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .controls-hint { font-size: 13px; color: var(--muted); }
+
+  /* Shop & Index */
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .screen-shake { animation: screenShake 0.4s; }
+  @keyframes screenShake {
+    0%,100% { transform: translate(0,0); }
+    20% { transform: translate(-8px, 6px); }
+    40% { transform: translate(8px, -6px); }
+    60% { transform: translate(-6px, -4px); }
+    80% { transform: translate(6px, 4px); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🥢</div>
+    <div class="brand-title">
+      <small>BATTLE KITCHEN</small>
+      <strong>Dumpling RNG</strong>
+    </div>
+  </div>
+
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('steamer')">♨️ Steamer</button>
+    <button class="nav-btn" onclick="switchTab('arena')">⚔️ Battle Arena</button>
+    <button class="nav-btn" onclick="switchTab('bento')">🍱 Bento Box</button>
+    <button class="nav-btn" onclick="switchTab('shop')">🏪 Shop & Index</button>
+  </nav>
+
+  <div class="hud-stats">
+    <div class="pill">🪙 <span id="coinDisplay">250</span></div>
+    <div class="pill">
+      <span>⭐ LV <span id="lvlDisplay">1</span></span>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- TAB 1: STEAMER RNG -->
+  <section id="tab-steamer" class="tab-panel active">
+    <div class="section-kicker">BAMBOO STEAMER</div>
+    <h1>Roll Dumplings</h1>
+    <div class="card steamer-stage">
+      <div class="steamer-basket" id="steamerBasket">
+        <div id="rollVisual" style="font-size:64px;">🥟</div>
+      </div>
+      <div id="rollResultTitle" style="font-size:22px; font-weight:800; margin-bottom:4px;">Ready to Steam!</div>
+      <div id="rollResultSub" style="color:var(--muted); font-size:14px; margin-bottom:18px;">Click Roll to discover rare dumplings & mutations.</div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn-primary" id="rollBtn" onclick="rollDumpling()">♨️ Roll Dumpling</button>
+        <button class="btn-secondary" id="autoBtn" onclick="toggleAutoRoll()">Auto-Roll: OFF</button>
+      </div>
+      <div style="margin-top:16px; font-size:12px; color:var(--muted);">
+        Current Luck Bonus: <strong id="luckText">+0%</strong> • Cooldown: <strong id="cdText">0.8s</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: BATTLE ARENA -->
+  <section id="tab-arena" class="tab-panel">
+    <div class="section-kicker">2D ACTION COMBAT</div>
+    <h1>Battle Kitchen Arena</h1>
+    <div class="card arena-wrap">
+      <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; width:100%;">
+        <div class="pill">❤️ HP: <strong id="arenaHp">100/100</strong></div>
+        <div class="pill">🌊 Wave: <strong id="arenaWave">1</strong></div>
+        <div class="pill">🗡️ Sword: <strong id="arenaSwordName">Wooden Chopstick</strong></div>
+        <div class="pill">🔫 Gun: <strong id="arenaGunName">Soy Sauce Squirt</strong></div>
+      </div>
+      <canvas id="arenaCanvas" width="820" height="460"></canvas>
+      <div class="controls-hint">
+        <strong>Move:</strong> WASD / Arrow Keys &nbsp;|&nbsp; <strong>Gun Shoot:</strong> Left-Click &nbsp;|&nbsp; <strong>Sword Slash:</strong> Spacebar or Right-Click
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: BENTO BOX -->
+  <section id="tab-bento" class="tab-panel">
+    <div class="section-kicker">INVENTORY</div>
+    <h1>Bento Box</h1>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <strong style="font-size:17px;">Active Bento Box</strong>
+          <div style="font-size:13px; color:var(--muted);">Up to 3 dumplings orbit you in battle and stack their buffs.</div>
+        </div>
+        <div class="pill" id="slotCountPill">0/3 SLOTTED</div>
+      </div>
+
+      <div class="bento-slots" id="activeSlotsContainer"></div>
+      <div style="font-size:12px; color:var(--muted);">✨ Equipped mutations multiply their buffs and sell value.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:var(--muted); margin-bottom:10px;">ACTIVE BUFFS FROM YOUR BOX</div>
